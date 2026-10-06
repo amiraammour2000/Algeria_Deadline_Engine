@@ -1,0 +1,191 @@
+import sys, json
+from pathlib import Path
+from datetime import date
+import streamlit as st
+ROOT=Path(__file__).resolve().parents[1]; sys.path.insert(0,str(ROOT))
+from engine.repository import CaseRepository
+from engine.models import Case, Event
+from engine.rules import RuleRepository
+from engine.calendar import AlgerianCalendar
+from engine.deadline import DeadlineEngine
+from engine.case_engine import CaseEngine
+from engine.documents import Document
+from engine.audit import build_audit, verify_audit
+from engine.legal_intelligence import LegalIntelligence
+from engine.legal_comparator import LegalComparator
+from engine.legal_knowledge_graph import LegalKnowledgeGraph
+from engine.legal_report_pdf import legal_report_pdf
+from engine.workspace import build_case_report
+from app.i18n import tr
+
+st.set_page_config(page_title='Algeria Legal Case Workspace', page_icon='⚖️', layout='wide', initial_sidebar_state='expanded')
+
+@st.cache_resource
+def services():
+    rules=RuleRepository(ROOT/'legal_rules/rules.json')
+    sources=json.loads((ROOT/'data/legal_sources.json').read_text(encoding='utf-8'))
+    jurisprudence=json.loads((ROOT/'data/jurisprudence.json').read_text(encoding='utf-8'))
+    graph_data=json.loads((ROOT/'data/legal_knowledge_graph.json').read_text(encoding='utf-8'))
+    intelligence=LegalIntelligence(sources,jurisprudence)
+    graph=LegalKnowledgeGraph(graph_data['nodes'],graph_data['edges'])
+    repo=CaseRepository(ROOT/'storage/cases.sqlite3')
+    cal=AlgerianCalendar(ROOT/'data/holidays_2026.json',weekend=(4,5))
+    engine=CaseEngine(rules,DeadlineEngine(cal,rules.ruleset_id,rules.version))
+    return rules,sources,jurisprudence,intelligence,LegalComparator(graph),repo,engine
+rules,sources,jurisprudence,intelligence,comparator,repo,engine=services()
+
+if 'lang' not in st.session_state: st.session_state.lang='fr'
+lang=st.session_state.lang
+
+def css():
+    rtl = 'direction:rtl;text-align:right;' if lang=='ar' else ''
+    st.markdown(f'''<style>
+    .block-container{{max-width:1500px;padding-top:1.2rem;}}
+    .hero{{padding:24px 28px;border-radius:18px;background:linear-gradient(135deg,#0b1f33,#173b57);color:white;margin-bottom:18px;{rtl}}}
+    .hero h1{{margin:0;font-size:30px;letter-spacing:-.5px;}}
+    .hero p{{margin:7px 0 0;opacity:.82;}}
+    .metric-card{{border:1px solid #dfe5eb;border-radius:14px;padding:15px;background:white;}}
+    .smallcaps{{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;opacity:.62;}}
+    .rtl{{direction:rtl;text-align:right;}}
+    [data-testid="stSidebar"]{{border-right:1px solid #e7ebef;}}
+    </style>''', unsafe_allow_html=True)
+css()
+
+with st.sidebar:
+    st.markdown('### ⚖️ Legal Workspace')
+    st.session_state.lang=st.selectbox(tr(lang,'language'), ['fr','ar','en'], index=['fr','ar','en'].index(lang), format_func=lambda x:{'fr':'🇫🇷 Français','ar':'🇩🇿 العربية','en':'🇬🇧 English'}[x])
+    lang=st.session_state.lang
+    st.divider()
+    cases=repo.list_cases()
+    if st.button('＋ '+tr(lang,'new_case'),use_container_width=True,type='primary'):
+        st.session_state.case_id=None
+    if cases:
+        labels={f"{r['reference']} — {r['title']}":r['id'] for r in cases}
+        current=st.session_state.get('case_id')
+        options=list(labels)
+        default=next((i for i,k in enumerate(options) if labels[k]==current),0)
+        pick=st.selectbox(tr(lang,'select_case'),options,index=default)
+        st.session_state.case_id=labels[pick]
+    st.divider()
+    st.caption(f'{tr(lang,"professional")} · {rules.ruleset_id} · v{rules.version}')
+
+st.markdown(f'''<div class="hero"><div class="smallcaps">Algeria Deadline Engine · V4.6</div><h1>{tr(lang,'app_name')}</h1><p>{tr(lang,'tagline')} · {tr(lang,'workspace_sub')}</p></div>''',unsafe_allow_html=True)
+
+if not st.session_state.get('case_id'):
+    st.subheader(tr(lang,'create'))
+    a,b=st.columns(2)
+    ref=a.text_input(tr(lang,'reference'),'DOS-2026-001')
+    title=b.text_input(tr(lang,'title'),'')
+    authority=a.text_input(tr(lang,'authority'),'')
+    jurisdiction=b.text_input(tr(lang,'jurisdiction'),'Algérie / Algeria')
+    if st.button('✓ '+tr(lang,'create'),type='primary'):
+        c=repo.create_case(Case.new(ref,title,authority)); st.session_state.case_id=c.id; st.success(tr(lang,'case_created')); st.rerun()
+    st.info(tr(lang,'create_first'))
+    st.stop()
+
+case=repo.get_case(st.session_state.case_id); events=repo.events(case['id']); docs=repo.documents(case['id'])
+
+tabs=st.tabs([tr(lang,'overview'),tr(lang,'timeline'),tr(lang,'documents'),tr(lang,'legal'),tr(lang,'jurisprudence'),tr(lang,'report'),tr(lang,'audit'),tr(lang,'settings')])
+
+with tabs[0]:
+    st.subheader(f"{case['reference']} — {case['title']}")
+    m=st.columns(4); m[0].metric(tr(lang,'status'),tr(lang,case['status']) if case['status'] in ('open','closed') else case['status']); m[1].metric(tr(lang,'events'),len(events)); m[2].metric(tr(lang,'documents_count'),len(docs)); m[3].metric(tr(lang,'calculations'),1 if 'evaluation' in st.session_state else 0)
+    st.caption(f"{tr(lang,'authority')}: {case['authority'] or '—'} · {tr(lang,'jurisdiction')}: {case['jurisdiction'] or '—'}")
+    c1,c2=st.columns(2)
+    with c1:
+        st.markdown('#### '+tr(lang,'quick_actions'))
+        if st.button('⚙️ '+tr(lang,'evaluate'),use_container_width=True): st.session_state.active_tab='legal'; st.toast(tr(lang,'evaluate'))
+        if case['status']=='open':
+            if st.button('🔒 '+tr(lang,'close_case'),use_container_width=True):
+                repo.update_case_status(case['id'],'closed'); st.rerun()
+        else:
+            if st.button('↻ '+tr(lang,'reopen_case'),use_container_width=True): repo.update_case_status(case['id'],'open'); st.rerun()
+    with c2:
+        st.markdown('#### '+tr(lang,'traceability'))
+        st.info(tr(lang,'disclaimer'))
+    st.markdown('#### '+tr(lang,'timeline'))
+    if events:
+        for e in events[-8:]: st.write(f"**{e['event_date']}** · {e['title']} · `{e['effect_status']}`")
+    else: st.info(tr(lang,'no_data'))
+
+with tabs[1]:
+    st.subheader(tr(lang,'timeline'))
+    d=st.date_input(tr(lang,'date'),date.today(),key='evdate')
+    typ=st.selectbox(tr(lang,'event_type'),['acte_administratif','notification','reclamation','reponse','recours','evenement_interruptif','evenement_suspensif','autre'])
+    title=st.text_input(tr(lang,'event_title'),key='evtitle'); desc=st.text_area(tr(lang,'description'),key='evdesc')
+    effect=st.selectbox(tr(lang,'effect'),['none','interruption','suspension','extension'],format_func=lambda x:tr(lang,x))
+    if st.button('＋ '+tr(lang,'add_event'),type='primary'):
+        ev=Event.new(d,typ,title or typ,desc); ev.legal_effect=effect; ev.effect_status='pending_validation' if effect!='none' else 'validated'; repo.add_event(case['id'],ev); st.success(tr(lang,'event_saved')); st.rerun()
+    st.divider()
+    for e in repo.events(case['id']):
+        with st.container(border=True):
+            a,b,c=st.columns([2,4,2]); a.write(str(e['event_date'])); b.write(f"**{e['title']}**\n\n{e['description'] or '—'}"); c.write(tr(lang,e['effect_status']) if e['effect_status'] in ('pending_validation','validated') else e['effect_status'])
+            if e['effect_status']=='pending_validation' and st.button('✓ '+tr(lang,'validate'),key='val_'+e['id']): repo.validate_event(e['id']); st.rerun()
+
+with tabs[2]:
+    st.subheader(tr(lang,'documents'))
+    up=st.file_uploader(tr(lang,'upload'),type=['pdf','png','jpg','jpeg','docx','txt'])
+    desc=st.text_input(tr(lang,'description_doc'))
+    if up and st.button('＋ '+tr(lang,'save'),type='primary'):
+        doc=Document.from_bytes(case['id'],up.name,up.getvalue(),up.type or '',desc); repo.add_document(doc); st.success(f"{tr(lang,'document_saved')} · SHA-256 {doc.sha256}"); st.rerun()
+    for d in docs:
+        with st.container(border=True):
+            st.write(f"**{d['filename']}**"); st.caption(f"SHA-256: {d['sha256']} · {d['created_at']}"); st.write(d.get('description') or '—')
+
+with tabs[3]:
+    st.subheader(tr(lang,'legal'))
+    rid=st.selectbox(tr(lang,'rule'),[r['id'] for r in rules.all()],format_func=lambda x:f"{x} — {rules.get(x)['title']}")
+    start=st.date_input(tr(lang,'start_date'),date.today())
+    nm=st.selectbox('Notification',[None,True,False],format_func=lambda x:'Non établi' if x is None else ('Oui' if x else 'Non'))
+    facts={'start_date':start.isoformat(),'notification_mentioned':nm}
+    if st.button('⚙️ '+tr(lang,'evaluate'),type='primary'):
+        ev=engine.evaluate(rid,facts,events,documents=docs,case=dict(case)); audit=build_audit(dict(case),events,ev,rules.data); st.session_state.evaluation=ev; st.session_state.audit=audit; repo.save_calculation(case['id'],ev); repo.save_audit(case['id'],audit); st.success(tr(lang,'report_ready'))
+    if 'evaluation' in st.session_state:
+        ev=st.session_state.evaluation
+        a,b,c=st.columns(3); a.metric(tr(lang,'status'),ev.get('status','—')); b.metric(tr(lang,'deadline'),str(ev.get('deadline','—'))[:10]); c.metric(tr(lang,'confidence'),f"{ev.get('confidence',0)*100:.0f}%")
+        st.markdown('#### '+tr(lang,'reasoning'))
+        for x in ev.get('trace',[]): st.write(f"**{x['step']}. {x['type']}** — {x['message']}")
+        st.markdown('#### '+tr(lang,'scenarios'))
+        for s in ev.get('scenarios',[]):
+            with st.expander(s['name']): st.write(s['description']); st.caption(' · '.join(s.get('assumptions',[])))
+        st.markdown('#### '+tr(lang,'attention'))
+        for x in ev.get('conflicts',[]): st.warning(f"{x['severity']} — {x['message']}")
+
+with tabs[4]:
+    st.subheader(tr(lang,'jurisprudence')); st.caption(tr(lang,'jurisprudence_note'))
+    q=st.text_input(tr(lang,'search'),'délai notification recours')
+    selected_rule=rules.get(rid if 'rid' in locals() else rules.all()[0]['id'])
+    for item in intelligence.jurisprudence.search(q,selected_rule):
+        rec=item['record']; badge=tr(lang,'verified') if rec['verified'] else tr(lang,'unverified')
+        with st.expander(f"{badge} · {rec['court']} · {rec['reference'] or '—'}"):
+            st.write(rec['title']); st.write(rec['solution']); st.caption(rec['source_url'])
+    if 'rid' in locals():
+        cmp=comparator.compare(rid)
+        st.markdown('#### Comparaison juridique')
+        st.write(cmp['classification']);
+        if cmp['human_review_required']: st.warning(tr(lang,'human_review'))
+
+with tabs[5]:
+    st.subheader(tr(lang,'report'))
+    if 'evaluation' not in st.session_state:
+        st.info(tr(lang,'no_report'))
+    else:
+        report=build_case_report(case,events,docs,st.session_state.evaluation,st.session_state.get('audit'),lang)
+        st.success(f"{tr(lang,'report_ready')} · SHA-256 {report['report_hash']}")
+        pdf=legal_report_pdf(report)
+        st.download_button('📄 '+tr(lang,'download_report'),pdf,file_name=f"{case['reference']}-legal-report.pdf",mime='application/pdf',type='primary')
+        st.download_button('{ } '+tr(lang,'export_json'),json.dumps(report,ensure_ascii=False,indent=2,default=str).encode('utf-8'),file_name=f"{case['reference']}-report.json",mime='application/json')
+        st.json({'schema':report['schema'],'report_hash':report['report_hash'],'validation':report['validation']})
+
+with tabs[6]:
+    st.subheader(tr(lang,'audit'))
+    if 'audit' in st.session_state:
+        audit=st.session_state.audit; ok=verify_audit(audit); st.metric(tr(lang,'integrity'),tr(lang,'valid') if ok else tr(lang,'invalid')); st.json(audit)
+    else: st.info(tr(lang,'no_data'))
+
+with tabs[7]:
+    st.subheader(tr(lang,'settings'))
+    st.selectbox(tr(lang,'language'),['fr','ar','en'],index=['fr','ar','en'].index(lang),key='settings_lang')
+    st.caption(tr(lang,'delete_note'))
+    st.markdown('#### '+tr(lang,'official_sources'))
+    for s in sources[:8]: st.markdown(f"- **{s.get('title',s.get('id'))}** — {s.get('url','')}")

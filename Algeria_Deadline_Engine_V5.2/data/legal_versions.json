@@ -1,0 +1,37 @@
+{
+  "schema": "legal-versioning/v1",
+  "updated": "2026-10-06",
+  "notice": "Publication dates are documentary metadata. Effective dates must be explicitly confirmed before automatic selection.",
+  "versions": [
+    {
+      "id": "VER-ALG-08-09-829-2008",
+      "rule_id": "ALG-08-09-829",
+      "article": "829",
+      "title": "Délai de recours devant le tribunal administratif",
+      "source_id": "SRC-JO-2008-21",
+      "publication_date": "2008-04-23",
+      "effective_from": null,
+      "effective_to": null,
+      "effective_date_status": "unconfirmed",
+      "status": "historical_candidate",
+      "supersedes": [],
+      "amends": [],
+      "notes": "Version initiale enregistrée à partir de la source officielle; date d'entrée en vigueur à confirmer."
+    },
+    {
+      "id": "VER-ALG-08-09-829-2022",
+      "rule_id": "ALG-08-09-829",
+      "article": "829",
+      "title": "Délai de recours devant le tribunal administratif — version postérieure à la loi 22-13",
+      "source_id": "SRC-JO-2022-48",
+      "publication_date": "2022-07-17",
+      "effective_from": null,
+      "effective_to": null,
+      "effective_date_status": "unconfirmed",
+      "status": "amendment_candidate",
+      "supersedes": [],
+      "amends": ["VER-ALG-08-09-829-2008"],
+      "notes": "Relation d'amendement à vérifier article par article avant activation."
+    }
+  ]
+}

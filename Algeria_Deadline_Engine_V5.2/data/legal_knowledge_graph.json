@@ -1,0 +1,18 @@
+{
+  "nodes": [
+    {"id":"RULE-ALG-08-09-829","type":"rule","label":"Loi 08-09 — article 829","verified":true,"payload":{"article":"829","title":"Délai de recours devant le tribunal administratif"}},
+    {"id":"RULE-ALG-08-09-830","type":"rule","label":"Loi 08-09 — article 830","verified":true,"payload":{"article":"830","title":"Réclamation administrative"}},
+    {"id":"RULE-ALG-08-09-831","type":"rule","label":"Loi 08-09 — article 831","verified":true,"payload":{"article":"831","title":"Opposabilité du délai"}},
+    {"id":"RULE-ALG-08-09-832","type":"rule","label":"Loi 08-09 — article 832","verified":true,"payload":{"article":"832","title":"Interruption des délais"}},
+    {"id":"SRC-JO-2008-21","type":"source","label":"JO n°21 du 23 avril 2008 — loi 08-09","verified":true,"payload":{"url":"https://www.joradp.dz/FTP/jo-francais/2008/F2008021.pdf"}},
+    {"id":"SRC-MJUSTICE-PORTAL","type":"source","label":"Portail du droit algérien et de la jurisprudence","verified":true,"payload":{"url":"https://droit.mjustice.gov.dz/fr"}},
+    {"id":"JUR-PORTAL-PLACEHOLDER-001","type":"jurisprudence","label":"Entrée jurisprudentielle à vérifier","verified":false,"payload":{"reference":"REGISTRY-PLACEHOLDER"}}
+  ],
+  "edges": [
+    {"source":"RULE-ALG-08-09-829","target":"SRC-JO-2008-21","relation":"defined_by","confidence":1.0,"basis":"texte officiel"},
+    {"source":"RULE-ALG-08-09-830","target":"SRC-JO-2008-21","relation":"defined_by","confidence":1.0,"basis":"texte officiel"},
+    {"source":"RULE-ALG-08-09-831","target":"SRC-JO-2008-21","relation":"defined_by","confidence":1.0,"basis":"texte officiel"},
+    {"source":"RULE-ALG-08-09-832","target":"SRC-JO-2008-21","relation":"defined_by","confidence":1.0,"basis":"texte officiel"},
+    {"source":"JUR-PORTAL-PLACEHOLDER-001","target":"SRC-MJUSTICE-PORTAL","relation":"listed_on","confidence":1.0,"basis":"registre non vérifié"}
+  ]
+}

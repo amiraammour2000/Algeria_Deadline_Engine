@@ -1,0 +1,17 @@
+[
+  {
+    "id": "JUR-PORTAL-PLACEHOLDER-001",
+    "court": "Conseil d'Etat",
+    "chamber": "",
+    "date": "",
+    "reference": "REGISTRY-PLACEHOLDER",
+    "title": "Registre de jurisprudence — entrée à compléter avec une décision vérifiée",
+    "question": "",
+    "solution": "Aucune solution jurisprudentielle n'est enregistrée dans cette entrée. Elle sert uniquement de structure de registre.",
+    "legal_basis": ["829"],
+    "source_url": "https://droit.mjustice.gov.dz/fr",
+    "source_status": "official_portal",
+    "verified": false,
+    "notes": "Ne jamais citer comme décision. Remplacer par une décision dont la référence, le texte intégral et la provenance ont été vérifiés."
+  }
+]

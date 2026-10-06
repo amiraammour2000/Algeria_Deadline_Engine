@@ -1,0 +1,1 @@
+La prochaine étape logique est donc V5.3 — API + PostgreSQL + architecture multi-tenant réelle, afin de sortir définitivement du modèle SQLite/local et préparer le produit à plusieurs cabinets, plusieurs utilisateurs et plusieurs dossiers simultanément.

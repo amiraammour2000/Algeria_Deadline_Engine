@@ -1,0 +1,6 @@
+[
+  {"id":"SRC-JO-2008-21","source_type":"statute","title":"Loi n°08-09 du 25 février 2008","citation":"JO n°21 du 23 avril 2008 — art. 829 à 832","url":"https://www.joradp.dz/FTP/jo-francais/2008/F2008021.pdf","status":"official","relevance":1.0},
+  {"id":"SRC-JO-2022-48","source_type":"statute","title":"Loi n°22-13 du 12 juillet 2022","citation":"JO n°48 du 17 juillet 2022 — art. 900 bis et suivants","url":"https://www.joradp.dz/FTP/jo-francais/2022/F2022048.pdf","status":"official","relevance":1.0},
+  {"id":"SRC-JO-2022-84","source_type":"regulation","title":"Décret exécutif n°22-435 du 11 décembre 2022","citation":"JO n°84 du 14 décembre 2022 — compétence territoriale","url":"https://www.joradp.dz/FTP/JO-FRANCAIS/2022/F2022084.pdf","status":"official","relevance":0.95},
+  {"id":"SRC-SGG-PORTAL","source_type":"repository","title":"Portail officiel du Secrétariat Général du Gouvernement","citation":"Recherche thématique et accès aux Journaux officiels","url":"https://www.joradp.dz/HFR/Accueil.htm","status":"official","relevance":0.9}
+]

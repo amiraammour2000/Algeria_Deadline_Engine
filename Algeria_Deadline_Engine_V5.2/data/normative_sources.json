@@ -1,0 +1,8 @@
+{
+  "updated": "2026-10-06",
+  "sources": [
+    {"id":"JORADP-2008-F2008021","name":"Journal officiel — loi n°08-09","url":"https://www.joradp.dz/FTP/jo-francais/2008/F2008021.pdf","priority":1},
+    {"id":"JORADP-2022-F2022048","name":"Journal officiel — loi n°22-13","url":"https://www.joradp.dz/FTP/jo-francais/2022/F2022048.pdf","priority":1},
+    {"id":"SGG-HOME","name":"Secrétariat Général du Gouvernement — Journal officiel","url":"https://www.joradp.dz/HFR/Accueil.htm","priority":1}
+  ]
+}
